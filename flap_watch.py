@@ -107,6 +107,10 @@ def main() -> int:
     parser.add_argument("--threshold", type=int, default=4, help="changes in the window that count as a flap")
     parser.add_argument("-v", "--verbose", action="store_true")
     args = parser.parse_args()
+    if args.interval <= 0 or args.window <= 0:
+        parser.error("--interval and --window must be positive")
+    if args.threshold < 2:
+        parser.error("--threshold must be at least 2")
 
     logging.basicConfig(
         level=logging.DEBUG if args.verbose else logging.INFO,
