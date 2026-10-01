@@ -45,6 +45,18 @@ class TrackerTest(unittest.TestCase):
         self.assertEqual(tracker.update(base, 20), [])
         self.assertEqual(tracker.update(base - {"192.0.2.0/24"}, 30), [("192.0.2.0/24", 3)])
 
+    def test_reported_once_per_episode(self):
+        tracker = FlapTracker(window=60, threshold=2)
+        base = {"192.0.2.0/24"}
+        tracker.update(base, 0)
+        self.assertEqual(tracker.update(set(), 10), [])
+        self.assertEqual(tracker.update(base, 20), [("192.0.2.0/24", 2)])
+        self.assertEqual(tracker.update(set(), 30), [])
+        self.assertEqual(tracker.update(base, 40), [])
+        # quiet for longer than the window, then flapping again
+        self.assertEqual(tracker.update(set(), 200), [])
+        self.assertEqual(tracker.update(base, 210), [("192.0.2.0/24", 2)])
+
     def test_old_changes_expire(self):
         tracker = FlapTracker(window=60, threshold=3)
         base = {"192.0.2.0/24"}

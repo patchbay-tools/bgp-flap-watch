@@ -40,10 +40,15 @@ class FlapTracker:
     threshold: int
     events: dict[str, deque[float]] = field(default_factory=lambda: defaultdict(deque))
     current: set[str] = field(default_factory=set)
+    reported: set[str] = field(default_factory=set)
     primed: bool = False
 
     def update(self, prefixes: set[str], now: float) -> list[tuple[str, int]]:
-        """Record a poll and return (prefix, changes) for prefixes over the threshold."""
+        """Record a poll and return (prefix, changes) for prefixes that just crossed the threshold.
+
+        A prefix is reported once per flapping episode, not on every change after it
+        crosses; it can be reported again once its changes drop back under the threshold.
+        """
         if not self.primed:
             self.current = prefixes
             self.primed = True
@@ -58,7 +63,10 @@ class FlapTracker:
             history.append(now)
             while history and now - history[0] > self.window:
                 history.popleft()
-            if len(history) >= self.threshold:
+            if len(history) < self.threshold:
+                self.reported.discard(prefix)
+            elif prefix not in self.reported:
+                self.reported.add(prefix)
                 flapping.append((prefix, len(history)))
 
         return sorted(flapping)
